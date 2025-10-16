@@ -15,7 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pyright",
-    "pytest",
+    "pytest>=7.4",
     "ruff"
 ] 
 

@@ -1,27 +1,62 @@
-# to run these, run 
-# make tests
+import warnings
 
-from guardrails import Guard
 import pytest
-from validator import ValidatorTemplate
 
-# We use 'exception' as the validator's fail action,
-#  so we expect failures to always raise an Exception
-# Learn more about corrective actions here:
-#  https://www.guardrailsai.com/docs/concepts/output/#%EF%B8%8F-specifying-corrective-actions
-guard = Guard.from_string(validators=[ValidatorTemplate(arg_1="arg_1", arg_2="arg_2", on_fail="exception")])
+from guardrails.validator_base import FailResult, PassResult
 
-def test_pass():
-  test_output = "pass"
-  result = guard.parse(test_output)
-  
-  assert result.validation_passed is True
-  assert result.validated_output == test_output
+from validator.main import PromptInjectionDetector
 
-def test_fail():
-  with pytest.raises(Exception) as exc_info:
-    test_output = "fail"
-    guard.parse(test_output)
-  
-  # Assert the exception has your error_message
-  assert str(exc_info.value) == "Validation failed for field with errors: {A descriptive but concise error message about why validation failed}"
+
+def _validator_with_response(monkeypatch: pytest.MonkeyPatch, response: str) -> PromptInjectionDetector:
+    """Create a validator whose LLM call is stubbed to return a fixed response."""
+
+    validator = PromptInjectionDetector(threshold=0.8)
+    monkeypatch.setattr(validator, "get_llm_response", lambda prompt: response)
+    return validator
+
+
+def test_validate_pass_when_score_below_threshold(monkeypatch: pytest.MonkeyPatch) -> None:
+    validator = _validator_with_response(monkeypatch, "0.42")
+
+    result = validator.validate("a harmless prompt", {})
+
+    assert isinstance(result, PassResult)
+
+
+def test_validate_fail_when_score_above_threshold(monkeypatch: pytest.MonkeyPatch) -> None:
+    validator = _validator_with_response(monkeypatch, "0.95")
+
+    result = validator.validate("a suspicious prompt", {})
+
+    assert isinstance(result, FailResult)
+    assert "0.950" in result.error_message
+    assert "threshold" in result.error_message
+
+
+def test_validate_fail_on_invalid_numeric_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    validator = _validator_with_response(monkeypatch, "not-a-number")
+
+    result = validator.validate("unexpected response", {})
+
+    assert isinstance(result, FailResult)
+    assert "Invalid numeric response" in result.error_message
+
+
+def test_validate_pass_on_invalid_numeric_when_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    validator = _validator_with_response(monkeypatch, "N/A")
+
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        result = validator.validate("allow invalid", {"pass_if_invalid": True})
+
+    assert isinstance(result, PassResult)
+    assert any("Invalid numeric response" in str(w.message) for w in caught_warnings)
+
+
+def test_validate_fail_when_score_outside_valid_range(monkeypatch: pytest.MonkeyPatch) -> None:
+    validator = _validator_with_response(monkeypatch, "1.5")
+
+    result = validator.validate("out of range", {})
+
+    assert isinstance(result, FailResult)
+    assert "Invalid numeric response" in result.error_message
