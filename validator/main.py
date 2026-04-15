@@ -116,7 +116,7 @@ class PromptInjectionDetector(Validator):
 
             # 2. Strip the response of any leading/trailing whitespaces
             # and convert to lowercase
-            response = response.strip(" .").lower()
+            response = response.strip(" .").lower().strip()
         except Exception as e:
             raise RuntimeError(f"Error getting response from the LLM: {e}") from e
 
