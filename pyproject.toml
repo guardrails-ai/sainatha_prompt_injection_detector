@@ -1,6 +1,6 @@
 [project]
 name = "prompt_injection_detector"
-version = "0.0.1"
+version = "0.0.2"
 description = "Validates whether an input prompt to an LLM is a prompt injection attempt."
 authors = [
     {name = "Sainath", email = "sainatha@zamp.ai"}
