@@ -111,8 +111,8 @@ class PromptInjectionDetector(Validator):
 
         # 1. Get LLM response
         try:
-            response = completion(model=self.llm_callable, messages=messages, **kwargs)
-            response = response.choices[0].message.content  # type: ignore
+            completion_response = completion(model=self.llm_callable, messages=messages, **kwargs)
+            response: str = completion_response.choices[0].message.content  # type: ignore
 
             # 2. Strip the response of any leading/trailing whitespaces
             # and convert to lowercase
@@ -156,7 +156,7 @@ class PromptInjectionDetector(Validator):
             # Compare score against threshold
             if score > self.threshold:
                 return FailResult(
-                    error_message=f"Prompt injection detected with score {score:.3f} (threshold: {self.threshold}). Failing the validation..."
+                    errorMessage=f"Prompt injection detected with score {score:.3f} (threshold: {self.threshold}). Failing the validation..."
                 )
             else:
                 return PassResult()
@@ -167,5 +167,5 @@ class PromptInjectionDetector(Validator):
                 warn(f"Invalid numeric response from the evaluator: {llm_response}. Passing the validation...")
                 return PassResult()
             return FailResult(
-                error_message=f"Invalid numeric response from the evaluator: {llm_response}. Expected a number between 0 and 1."
+                errorMessage=f"Invalid numeric response from the evaluator: {llm_response}. Expected a number between 0 and 1."
             )

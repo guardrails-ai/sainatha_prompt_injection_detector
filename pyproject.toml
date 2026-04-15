@@ -1,9 +1,9 @@
 [project]
-name = "validator-template"
-version = "0.0.0"
-description = "Template repo for Guardrails Hub validators."
+name = "prompt_injection_detector"
+version = "0.0.1"
+description = "Validates whether an input prompt to an LLM is a prompt injection attempt."
 authors = [
-    {name = "Guardrails AI", email = "contact@guardrailsai.com"}
+    {name = "Sainath", email = "sainatha@zamp.ai"}
 ]
 license = {file = "LICENSE"}
 readme = "README.md"
